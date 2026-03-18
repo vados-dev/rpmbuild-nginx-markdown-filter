@@ -1,5 +1,6 @@
 name: Build RPM
-
+permissions:
+  contents: write
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +12,7 @@ on:
 
 jobs:
   build:
+    if: github.event.repository.owner.id == github.event.sender.id
     runs-on: ubuntu-latest
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
@@ -65,8 +67,8 @@ jobs:
         id: create_release
         uses: actions/create-release@latest
         with:
-            tag_name: ${{ env.GITHUB_RUN_ID }} #${{ github.run_id }}
-            release_name: Release ${{ github.sha }} #"Release: ${{ env.DT_STAMP }}, nginx version: ${{ inputs.nginx_version }}."
+            tag_name: ${{ env.REF_NAME }} #${{ github.run_id }}
+            release_name: Release ${{ env.REF_NAME }} #"Release: ${{ env.DT_STAMP }}, nginx version: ${{ inputs.nginx_version }}."
             body: |
               Build width:
               - Date: ${{ env.DateTime }}
@@ -89,18 +91,6 @@ jobs:
             --define "_topdir $(pwd)" \
             --define "_module_dir $(pwd)/ngx_markdown_filter_module" \
             SPECS/nginx.spec
-
-      - name: Upload artifacts
-        id: upload_artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          #nginx-rpms-${{ inputs.nginx_version }}
-          #path: ${{ steps.rpm.outputs.rpm_dir_path }}
-          name: nginx-rpms-${{ inputs.nginx_version }}
-          path: |
-            RPMS/**/*.rpm
-#            SRPMS/*.src.rpm
-        continue-on-error: true
 
       - name: Upload Release Asset
         id: upload-release-asset 
@@ -129,6 +119,18 @@ jobs:
              - REF: ${{ env.REF }}
              - REF NAME: ${{ env.REF_NAME }}
              - SHA: ${{ env.SHA }}
+
+      - name: Upload artifacts
+        id: upload_artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          #nginx-rpms-${{ inputs.nginx_version }}
+          #path: ${{ steps.rpm.outputs.rpm_dir_path }}
+          name: nginx-rpms-${{ inputs.nginx_version }}
+          path: |
+            RPMS/**/*.rpm
+            SRPMS/*.src.rpm
+        continue-on-error: true
 
       - name: Echo Build Outputs
         shell: bash
