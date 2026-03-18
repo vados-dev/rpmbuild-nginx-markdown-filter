@@ -92,9 +92,9 @@ jobs:
       - name: Echo Build Outputs
         shell: bash
         run: |
-            printf "%s\n" "${steps.rpm_build.outputs[@]}"
-            printf "%s\n" "${steps.create_release.outputs[@]}"
-            printf "%s\n" "${steps.upload_artifacts.outputs[@]}"
+            printf "%s\n" "${{ steps.rpm_build.outputs }}"
+            printf "%s\n" "${{ steps.create_release.outputs }}"
+            printf "%s\n" "${{ steps.upload_artifacts.outputs }}"
         continue-on-error: true
 
       - name: Upload Release Asset
