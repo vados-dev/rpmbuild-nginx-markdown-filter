@@ -62,7 +62,24 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: nginx-rpms-${{ inputs.nginx_version }}
-          path: |
+          name: Binary RPM #nginx-rpms-${{ inputs.nginx_version }}
+          path: ${{ steps.rpm.outputs.rpm_dir_path }}
+          #path: |
+            #RPMS/**/*.rpm
+            #SRPMS/*.src.rpm
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@master
+        with:
+          files: |
             RPMS/**/*.rpm
             SRPMS/*.src.rpm
+#android-recovery/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/${{ env.BUILD_TARGET_NAME }}.img
+#android-recovery/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/PBRP*.zip
+#android-recovery/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/ramdisk-recovery.*
+          #name: Unofficial PBRP for ${{ github.event.inputs.DEVICE_NAME }} // ${{ env.BUILD_DATE }}
+          tag_name: ${{ github.run_id }}
+          #body: |
+            # Build: ${{ inputs.MANIFEST_BRANCH }}
+            #Device: [Device Tree/Branch](${{ inputs.DEVICE_TREE }}/tree/${{ inputs.DEVICE_TREE_BRANCH }})
+            #Commit: Most recent [commit](${{ inputs.DEVICE_TREE }}/commit/${{ env.COMMIT_ID }}) during building.
