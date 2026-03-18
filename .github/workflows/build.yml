@@ -41,25 +41,27 @@ jobs:
         run: |
           set -euo pipefail
           ver="${{ inputs.nginx_version }}"
-          sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" rpmbuild/SPECS/nginx.spec
-          sed -i -E "s/^Version: [0-9.]+[+]/Version: ${ver}+/" rpmbuild/SPECS/nginx.spec
-          sed -i -E "s/^BASE_VERSION=.*/BASE_VERSION=${ver}/" rpmbuild/SPECS/Makefile
-          rm -f rpmbuild/SOURCES/nginx-*.tar.gz
-          curl -fL -o "rpmbuild/SOURCES/nginx-${ver}.tar.gz" "https://nginx.org/download/nginx-${ver}.tar.gz"
+          sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" SPECS/nginx.spec
+          sed -i -E "s/^Version: [0-9.]+[+]/Version: ${ver}+/" SPECS/nginx.spec
+          sed -i -E "s/^BASE_VERSION=.*/BASE_VERSION=${ver}/" SPECS/Makefile
+          rm -f SOURCES/nginx-*.tar.gz
+          curl -fL -o "SOURCES/nginx-${ver}.tar.gz" "https://nginx.org/download/nginx-${ver}.tar.gz"
 
       - name: Build RPM
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf ngx_markdown_filter_module
+          tar -xzf SOURCES/ngx_markdown_filter_module.tar.gz -C .
           rpmbuild -ba \
-            --define "_topdir $(pwd)/rpmbuild" \
+            --define "_topdir $(pwd)" \
             --define "_module_dir $(pwd)/ngx_markdown_filter_module" \
-            rpmbuild/SPECS/nginx.spec
+            SPECS/nginx.spec
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nginx-rpms-${{ inputs.nginx_version }}
           path: |
-            rpmbuild/RPMS/**/*.rpm
-            rpmbuild/SRPMS/*.src.rpm
+            RPMS/**/*.rpm
+            SRPMS/*.src.rpm
