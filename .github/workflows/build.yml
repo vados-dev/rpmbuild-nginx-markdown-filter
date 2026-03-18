@@ -53,19 +53,19 @@ jobs:
 
       - name: Get Date Time Stamp # Output will be use in Release
         run: |
-          echo "DTSTAMP=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+          echo "DT_STAMP=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
         continue-on-error: true
 
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
         with:
-            tag_name: ${{ github.ref }}
-            release_name: Release ${{ env.DTSTAMP }}
-            body: |
-              Changes in this Release
-              - Create RPM
-              - Upload Source RPM
+            tag_name: ${{ env.run_id }}
+            release_name: "Release nginx: ${{ inputs.nginx_version }}, this build: ${{ env.DT_STAMP }}"
+#            body: |
+#              Changes in this Release
+#              - Create RPM
+#              - Upload Source RPM
             draft: false
             prerelease: true
         continue-on-error: true
@@ -88,7 +88,7 @@ jobs:
         with:
           #nginx-rpms-${{ inputs.nginx_version }}
           #path: ${{ steps.rpm.outputs.rpm_dir_path }}
-          name: Binary RPM ${{ inputs.nginx_version }} 
+          name: Binary RPM ${{ inputs.nginx_version }}
           path: |
             RPMS/**/*.rpm
             SRPMS/*.src.rpm
