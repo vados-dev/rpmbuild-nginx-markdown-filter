@@ -137,7 +137,7 @@ a mail proxy server.
 
 %package module-markdown-filter
 Summary: nginx markdown filter module
-Version: 1.29.6+0.1.6
+Version: 1.29.6+0.1.6f
 Release: 1%{?dist}.ngx
 Group: %{_group}
 Requires: cmark-devel
