@@ -12,6 +12,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      GITHUB_TOKEN: ${{ secrets.amster }}
     container: quay.io/centos/centos:stream10
     steps:
       - name: Checkout
@@ -120,6 +123,3 @@ jobs:
             # Build: ${{ inputs.MANIFEST_BRANCH }}
             #Device: [Device Tree/Branch](${{ inputs.DEVICE_TREE }}/tree/${{ inputs.DEVICE_TREE_BRANCH }})
             #Commit: Most recent [commit](${{ inputs.DEVICE_TREE }}/commit/${{ env.COMMIT_ID }}) during building.
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
