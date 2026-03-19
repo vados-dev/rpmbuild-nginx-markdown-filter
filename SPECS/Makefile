@@ -22,281 +22,41 @@ MODULE_PACKAGE_VENDOR=	Nginx, Inc.
 MODULE_PACKAGE_URL=	http://nginx.org/
 MODULE_PACKAGE_LICENSE=2-clause BSD-like license
 
-MODULES=	geoip image-filter njs perl xslt rtmp vod
+MODULES=	markdown
 
 -include Makefile.module-*
 
-MODULE_SUMMARY_geoip=		GeoIP dynamic modules
-MODULE_SUMMARY_image_filter=	image filter dynamic module
-MODULE_SUMMARY_njs=		nginScript dynamic modules
-MODULE_SUMMARY_perl=		Perl dynamic module
-MODULE_SUMMARY_xslt=		xslt dynamic module
-MODULE_SUMMARY_rtmp=	RTMP dynamic module
-MODULE_SUMMARY_vod=	NGINX-based MP4 Repackager
+MODULE_SUMMARY_markdown=	Dynamic module markdown filter for nginx.
 
-MODULE_VERSION_geoip=		$(BASE_VERSION)
-MODULE_RELEASE_geoip=		1
-MODULE_VERSION_image_filter=	$(BASE_VERSION)
-MODULE_RELEASE_image_filter=	1
-MODULE_VERSION_njs=		0.1.14
-MODULE_RELEASE_njs=		1
-MODULE_VERSION_perl=		$(BASE_VERSION)
-MODULE_RELEASE_perl=		1
-MODULE_VERSION_xslt=		$(BASE_VERSION)
-MODULE_RELEASE_xslt=		1
-MODULE_VERSION_rtmp=	1.2.0
-MODULE_RELEASE_rtmp=		1
-MODULE_VERSION_vod= 	1.24
-MODULE_RELEASE_vod=		1
+MODULE_VERSION_markdown		$(BASE_VERSION)
+MODULE_RELEASE_markdown		1
 
-MODULE_SOURCES_njs=		njs-$(MODULE_VERSION_njs).tar.gz
-MODULE_SOURCES_rtmp=	rtmp-v$(MODULE_VERSION_rtmp).tar.gz
-MODULE_SOURCES_vod=		nginx-vod-module-$(MODULE_VERSION_vod).tar.gz
-MODULE_CONFARGS_geoip=		--with-http_geoip_module=dynamic \
-				--with-stream_geoip_module=dynamic
-MODULE_CONFARGS_image_filter=	--with-http_image_filter_module=dynamic
-MODULE_CONFARGS_njs=		--add-dynamic-module=njs-$(MODULE_VERSION_njs)/nginx
-MODULE_CONFARGS_perl=		--with-http_perl_module=dynamic
-MODULE_CONFARGS_xslt=		--with-http_xslt_module=dynamic
-MODULE_CONFARGS_rtmp=		--add-dynamic-module=nginx-rtmp-module-$(MODULE_VERSION_rtmp)
-MODULE_CONFARGS_vod=		--add-dynamic-module=nginx-vod-module-$(MODULE_VERSION_vod) \
-			    --with-http_flv_module \
-			    --with-http_mp4_module
+#MODULE_SOURCES_njs=		njs-$(MODULE_VERSION_njs).tar.gz
+#MODULE_SOURCES_rtmp=	rtmp-v$(MODULE_VERSION_rtmp).tar.gz
+MODULE_SOURCES_markdown=	ngx_markdown_filter_module.tar.gz
+MODULE_CONFARGS_markdown=	--add-dynamic-module=%{_module_dir}
 
-# geoip
+# markdown
 
-define MODULE_DEFINITIONS_geoip
-%if 0%{?suse_version} == 1315
-BuildRequires: libGeoIP-devel
-Requires: libGeoIP1
-%else
-BuildRequires: GeoIP-devel
-Requires: GeoIP
-%endif
-endef
-export MODULE_DEFINITIONS_geoip
+define MODULE_DEFINITIONS_markdown
+Requires: cmark-devel
+Requires: nginx-r%{base_version}
+export MODULE_DEFINITIONS_markdown
 
-define MODULE_POST_geoip
+define MODULE_POST_markdown
 cat <<BANNER
 ----------------------------------------------------------------------
 
-The $(MODULE_SUMMARY_geoip) for nginx have been installed.
-To enable these modules, add the following to /etc/nginx/nginx.conf
+The $(MODULE_SUMMARY_markdown) for nginx have been installed.
+To enable this module, add the following to /etc/nginx/modules-enabled/module-markdown-filter.conf
 and reload nginx:
 
-    load_module modules/ngx_http_geoip_module.so;
-    load_module modules/ngx_stream_geoip_module.so;
-
-Please refer to the modules documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_geoip_module.html
-http://nginx.org/en/docs/stream/ngx_stream_geoip_module.html
+    load_module modules/ngx_markdown_filter_module.so;
 
 ----------------------------------------------------------------------
 BANNER
 endef
-export MODULE_POST_geoip
-
-# image-filter
-
-define MODULE_DEFINITIONS_image_filter
-BuildRequires: gd-devel
-Requires: gd
-endef
-export MODULE_DEFINITIONS_image_filter
-
-define MODULE_POST_image_filter
-cat <<BANNER
-----------------------------------------------------------------------
-
-The $(MODULE_SUMMARY_image_filter) for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_image_filter_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_image_filter_module.html
-
-----------------------------------------------------------------------
-BANNER
-endef
-export MODULE_POST_image_filter
-
-# njs
-
-MODULE_VERSION_PREFIX_njs=$(BASE_VERSION).
-
-define MODULE_DEFINITIONS_njs
-BuildRequires: libedit-devel
-endef
-export MODULE_DEFINITIONS_njs
-
-define MODULE_PREBUILD_njs
-cd %{bdir}/njs-$(MODULE_VERSION_njs) \&\& ./configure \&\& make njs
-endef
-export MODULE_PREBUILD_njs
-
-define MODULE_PREINSTALL_njs
-%{__install} -m644 %{bdir}/njs-$(MODULE_VERSION_njs)/CHANGES \
-	$$RPM_BUILD_ROOT%{_datadir}/doc/nginx-module-njs/
-%{__mkdir} -p $$RPM_BUILD_ROOT%{_bindir}
-%{__install} -m755 %{bdir}/njs-$(MODULE_VERSION_njs)/build/njs \
-	$$RPM_BUILD_ROOT%{_bindir}/
-endef
-export MODULE_PREINSTALL_njs
-
-define MODULE_FILES_njs
-%{_bindir}/njs
-endef
-export MODULE_FILES_njs
-
-define MODULE_POST_njs
-cat <<BANNER
-----------------------------------------------------------------------
-
-The $(MODULE_SUMMARY_njs) for nginx have been installed.
-To enable these modules, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_js_module.so;
-    load_module modules/ngx_stream_js_module.so;
-
-Please refer to the modules documentation for further details:
-http://nginx.org/en/docs/njs_about.html
-http://nginx.org/en/docs/http/ngx_http_js_module.html
-http://nginx.org/en/docs/stream/ngx_stream_js_module.html
-
-----------------------------------------------------------------------
-BANNER
-endef
-export MODULE_POST_njs
-
-# perl
-
-define MODULE_DEFINITIONS_perl
-%if (0%{?suse_version} == 1315)
-BuildRequires: perl
-%else
-BuildRequires: perl-devel
-BuildRequires: perl-ExtUtils-Embed
-%endif
-Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $$version))
-endef
-export MODULE_DEFINITIONS_perl
-
-define MODULE_PREINSTALL_perl
-%{__make} DESTDIR=$$RPM_BUILD_ROOT INSTALLDIRS=vendor -f objs/Makefile install_perl_modules
-find %{buildroot} -type f -name .packlist -exec rm -f '{}' \\;
-find %{buildroot} -type f -name perllocal.pod -exec rm -f '{}' \\;
-find %{buildroot} -type f -empty -exec rm -f '{}' \\;
-find %{buildroot} -type f -iname '*.so' -exec chmod 0755 '{}' \\;
-endef
-export MODULE_PREINSTALL_perl
-
-define MODULE_FILES_perl
-%dir %{perl_vendorarch}/auto/nginx
-%{perl_vendorarch}/nginx.pm
-%{perl_vendorarch}/auto/nginx/nginx.so
-%{perl_vendorarch}/auto/nginx/nginx-debug.so
-%{_mandir}/man3/nginx.3pm*
-endef
-export MODULE_FILES_perl
-
-define MODULE_POST_perl
-cat <<BANNER
-----------------------------------------------------------------------
-
-The $(MODULE_SUMMARY_perl) for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_perl_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_perl_module.html
-
-----------------------------------------------------------------------
-BANNER
-endef
-export MODULE_POST_perl
-
-# xslt
-
-define MODULE_DEFINITIONS_xslt
-BuildRequires: libxslt-devel
-Requires: libxslt
-endef
-export MODULE_DEFINITIONS_xslt
-
-define MODULE_POST_xslt
-cat <<BANNER
-----------------------------------------------------------------------
-
-The $(MODULE_SUMMARY_xslt) for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_xslt_filter_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_xslt_module.html
-
-----------------------------------------------------------------------
-BANNER
-endef
-export MODULE_POST_xslt
-
-
-# rtmp
-
-define MODULE_DEFINITIONS_rtmp
-
-endef
-export MODULE_DEFINITIONS_rtmp
-
-define MODULE_POST_rtmp
-cat <<BANNER
-----------------------------------------------------------------------
-
-The $(MODULE_SUMMARY_rtmp) for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_rtmp_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_rtmp_module.html
-
-----------------------------------------------------------------------
-BANNER
-endef
-export MODULE_POST_rtmp
-
-# vod
-
-define MODULE_DEFINITIONS_vod
-
-endef
-export MODULE_DEFINITIONS_vod
-
-define MODULE_POST_vod
-cat <<BANNER
-----------------------------------------------------------------------
-
-The $(MODULE_SUMMARY_vod) for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_vod_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_vod_module.html
-
-----------------------------------------------------------------------
-BANNER
-endef
-export MODULE_POST_vod
-
+export MODULE_POST_markdown
 
 BASE_CONFIGURE_ARGS=\
 	--prefix=%{_sysconfdir}/nginx \
