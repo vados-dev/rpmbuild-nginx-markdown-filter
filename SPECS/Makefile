@@ -315,8 +315,8 @@ detect-module-licenses:
 	fi ; \
 	meta="$${tmpdir}/modules.tsv" ; \
 	: > "$${meta}" ; \
-	$(foreach m,$(MODULES),printf '%s\t%s\t%s\t%s\n' '$(m)' '$(MODULE_SOURCES_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_LICENSE_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_URL_$(subst -,_,$(m)))' >> "$${meta}" ; ) \
-	while IFS=$$'\t' read -r mod src lic vendor ; do \
+	$(foreach m,$(MODULES),printf '%s|%s|%s|%s\n' '$(m)' '$(MODULE_SOURCES_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_LICENSE_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_URL_$(subst -,_,$(m)))' >> "$${meta}" ; ) \
+	while IFS='|' read -r mod src lic vendor ; do \
 		echo ; \
 		echo "===> $${mod}" ; \
 		if [ -z "$${src}" ] && [ -n "$${vendor}" ]; then src="$${vendor}" ; fi ; \
