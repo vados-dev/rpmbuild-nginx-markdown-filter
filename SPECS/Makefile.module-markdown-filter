@@ -30,7 +30,7 @@ define MODULE_POST_markdown_filter
 cat <<BANNER
 ----------------------------------------------------------------------
 
-The $(MODULE_SUMMARY_markdown) for nginx have been installed.
+The $(MODULE_SUMMARY_markdown_filter) for nginx have been installed.
 To enable this module, add the following to /etc/nginx/modules-enabled/module-markdown-filter.conf
 and reload nginx:
 

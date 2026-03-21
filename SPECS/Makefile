@@ -91,7 +91,7 @@ BASE_CONFIGURE_ARGS=\
 
 export CR=\\n
 
-modname = $(shell echo $1 | cut -c 14- | cut -d '.' -f 1 | tr '-' '_')
+modname = $(shell basename "$1" | sed -e 's#^nginx-module-##' -e 's#\.spec$$##' | tr '-' '_')
 
 default:
 	@echo "valid targets: all base $(addprefix module-, $(MODULES)) test test-debug"
@@ -142,7 +142,7 @@ nginx-module-%.spec:
 	i=100 ; \
 	sources= ; \
 	prepsources= ; \
-	for src in $(MODULE_SOURCES_$(call modname, $*)); do \
+	for src in $(MODULE_SOURCES_$(subst -,_,$*)); do \
 		s="`printf "Source%d: %s\n" $${i} $${src}`" ; \
 		sources="$${sources}\n$${s}" ; \
 		is_archive=0 ; \
@@ -168,7 +168,7 @@ nginx-module-%.spec:
 	i=100 ; \
 	patches= ; \
 	preppatches= ; \
-	for src in $(MODULE_PATCHES_$(call modname, $@)); do \
+	for src in $(MODULE_PATCHES_$(subst -,_,$*)); do \
 		s="`printf "Patch%d: %s\n" $${i} $${src}`" ; \
 		patches="$${patches}\n$${s}" ; \
 		s="`printf "%%patch%d -p1" $${i}`" ; \
@@ -191,29 +191,29 @@ nginx-module-%.spec:
 	if [ "$(MODULE_TARGET)" = "plus" ]; then \
 		pkgname=`echo $${pkgname} | sed -e "s#^nginx-#nginx-plus-#"` ; \
 	fi ; \
-	definitions=`echo "$$MODULE_DEFINITIONS_$(call modname, $@)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	prebuild=`echo "$$MODULE_PREBUILD_$(call modname, $@)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	preinstall=`echo "$$MODULE_PREINSTALL_$(call modname, $@)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	buildenv=`echo "$$MODULE_ENV_$(call modname, $@)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	files=`echo "$$MODULE_FILES_$(call modname, $@)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	post=`echo "$$MODULE_POST_$(call modname, $@)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	definitions=`echo "$$MODULE_DEFINITIONS_$(subst -,_,$*)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	prebuild=`echo "$$MODULE_PREBUILD_$(subst -,_,$*)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	preinstall=`echo "$$MODULE_PREINSTALL_$(subst -,_,$*)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	buildenv=`echo "$$MODULE_ENV_$(subst -,_,$*)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	files=`echo "$$MODULE_FILES_$(subst -,_,$*)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	post=`echo "$$MODULE_POST_$(subst -,_,$*)" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	cat $(MODULE_SPEC_TEMPLATE) | sed \
 		-e "s#%%NAME%%#$${pkgname}#g" \
-		-e "s#%%MODULE_PACKAGE_VENDOR%%#$(MODULE_PACKAGE_VENDOR_$(call modname, $@))#g" \
-		-e "s#%%MODULE_PACKAGE_URL%%#$(MODULE_PACKAGE_URL_$(call modname, $@))#g" \
-		-e "s#%%MODULE_PACKAGE_LICENSE%%#$(if $(MODULE_PACKAGE_LICENSE_$(call modname, $@)),$(MODULE_PACKAGE_LICENSE_$(call modname, $@)),$(PACKAGE_LICENSE))#g" \
-		-e "s#%%SUMMARY%%#$(MODULE_SUMMARY_PREFIX) $(MODULE_SUMMARY_$(call modname, $@))#g" \
-		-e "s#%%SHORT_SUMMARY%%#$(MODULE_SUMMARY_$(call modname, $@))#g" \
+		-e "s#%%MODULE_PACKAGE_VENDOR%%#$(MODULE_PACKAGE_VENDOR_$(subst -,_,$*))#g" \
+		-e "s#%%MODULE_PACKAGE_URL%%#$(MODULE_PACKAGE_URL_$(subst -,_,$*))#g" \
+		-e "s#%%MODULE_PACKAGE_LICENSE%%#$(if $(MODULE_PACKAGE_LICENSE_$(subst -,_,$*)),$(MODULE_PACKAGE_LICENSE_$(subst -,_,$*)),$(PACKAGE_LICENSE))#g" \
+		-e "s#%%SUMMARY%%#$(MODULE_SUMMARY_PREFIX) $(MODULE_SUMMARY_$(subst -,_,$*))#g" \
+		-e "s#%%SHORT_SUMMARY%%#$(MODULE_SUMMARY_$(subst -,_,$*))#g" \
 		-e "s#%%TARGET_VERSION%%#$(TARGET_VERSION)#g" \
 		-e "s#%%MAIN_VERSION%%#$(BASE_VERSION)#g" \
 		-e "s#%%MAIN_RELEASE%%#$(BASE_RELEASE)#g" \
 		-e "s#%%BASE_VERSION%%#$(BASE_VERSION)#g" \
 		-e "s#%%BASE_RELEASE%%#$(BASE_RELEASE)#g" \
-		-e "s#%%MODULE_VERSION_PREFIX%%#$(MODULE_VERSION_PREFIX_$(call modname, $@))#g" \
-		-e "s#%%VERSION%%#$(MODULE_VERSION_$(call modname, $@))#g" \
-		-e "s#%%RELEASE%%#$(MODULE_RELEASE_$(call modname, $@))#g" \
+		-e "s#%%MODULE_VERSION_PREFIX%%#$(MODULE_VERSION_PREFIX_$(subst -,_,$*))#g" \
+		-e "s#%%VERSION%%#$(MODULE_VERSION_$(subst -,_,$*))#g" \
+		-e "s#%%RELEASE%%#$(MODULE_RELEASE_$(subst -,_,$*))#g" \
 		-e "s#%%BASE_CONFIGURE_ARGS%%#$(BASE_CONFIGURE_ARGS)#g" \
-		-e "s#%%MODULE_CONFIGURE_ARGS%%#$(MODULE_CONFARGS_$(call modname, $@))#g" \
+		-e "s#%%MODULE_CONFIGURE_ARGS%%#$(MODULE_CONFARGS_$(subst -,_,$*))#g" \
 		-e "s#%%COPYRIGHT_SOURCE%%#$${copyright_source}#g" \
 		-e "s#%%MODULE_SOURCES%%#$${sources}#g" \
 		-e "s#%%MODULE_PATCHES%%#$${patches}#g" \
@@ -222,8 +222,8 @@ nginx-module-%.spec:
 		-e "s#%%MODULE_DEFINITIONS%%#$${definitions}#g" \
 		-e "s#%%MODULE_PREBUILD%%#$${prebuild}#g" \
 		-e "s#%%MODULE_ENV%%#$${buildenv}#g" \
-		-e "s#%%MODULE_CC_OPT_DEBUG%%#$(MODULE_CC_OPT_DEBUG_$(call modname, $@))#g" \
-		-e "s#%%MODULE_CC_OPT_NODEBUG%%#$(MODULE_CC_OPT_NODEBUG_$(call modname, $@))#g" \
+		-e "s#%%MODULE_CC_OPT_DEBUG%%#$(MODULE_CC_OPT_DEBUG_$(subst -,_,$*))#g" \
+		-e "s#%%MODULE_CC_OPT_NODEBUG%%#$(MODULE_CC_OPT_NODEBUG_$(subst -,_,$*))#g" \
 		-e "s#%%MODULE_PREINSTALL%%#$${preinstall}#g" \
 		-e "s#%%MODULE_FILES%%#$${files}#g" \
 		-e "s#%%MODULE_POST%%#$${post}#g" \
