@@ -99,8 +99,8 @@ jobs:
           rm -f SOURCES/nginx-*.tar.gz SOURCES/nginx-*.tar.xz SOURCES/nginx-*.tgz
           cp -f "/tmp/nginx-srpm/${tarball}" "SOURCES/${tarball}"
 
-          sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" SPECS/nginx.spec
           sed -i -E "s/^BASE_VERSION[[:space:]]*=.*/BASE_VERSION=\t${ver}/" SPECS/Makefile
+          make -C SPECS nginx.spec specs
 
           echo "nginx_version=${ver}" >> "$GITHUB_OUTPUT"
           echo "source_repo=${source_repo}" >> "$GITHUB_OUTPUT"

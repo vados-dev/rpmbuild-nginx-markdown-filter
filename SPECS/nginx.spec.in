@@ -179,6 +179,17 @@ cd $RPM_BUILD_ROOT%{_sysconfdir}/nginx && \
 %{__install} -m 644 -p %{SOURCE3} \
     $RPM_BUILD_ROOT%{_sysconfdir}/nginx/conf.d/default.conf
 
+# Install additional nginx config snippets from Source10 archive.
+%{__mkdir} -p $RPM_BUILD_ROOT%{_sysconfdir}/nginx
+tmpcfgdir=$(mktemp -d)
+tar -xzf %{SOURCE10} -C "${tmpcfgdir}"
+if [ -d "${tmpcfgdir}/nginx" ]; then
+    %{__cp} -a "${tmpcfgdir}/nginx/." "$RPM_BUILD_ROOT%{_sysconfdir}/nginx/"
+else
+    %{__cp} -a "${tmpcfgdir}/." "$RPM_BUILD_ROOT%{_sysconfdir}/nginx/"
+fi
+%{__rm} -rf "${tmpcfgdir}"
+
 %{__install} -p -D -m 0644 %{bdir}/objs/nginx.8 \
     $RPM_BUILD_ROOT%{_mandir}/man8/nginx.8
 
@@ -229,7 +240,6 @@ cat /dev/null > debugsourcefiles.list
 %{_sbindir}/nginx-debug
 
 %dir %{_sysconfdir}/nginx
-tar -xzf %SOURCE10
 %dir %{_sysconfdir}/nginx/conf.d
 %{_sysconfdir}/nginx/modules
 
@@ -327,4 +337,5 @@ if [ $1 -ge 1 ]; then
 fi
 
 %changelog
-
+* Sat Mar 21 2026 vados <noreply@example.com>
+- Fix Source10 extraction in %install and keep %files declarative.
