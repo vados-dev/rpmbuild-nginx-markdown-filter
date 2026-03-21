@@ -307,18 +307,22 @@ detect-module-licenses:
 	@{ \
 	set -e ; \
 	tmpdir=`mktemp -d` ; \
-	trap 'rm -rf "$${tmpdir}"' EXIT ; \
+	keep_tmp="$(KEEP_TMP)" ; \
+	if [ -z "$${keep_tmp}" ] || [ "$${keep_tmp}" = "0" ]; then \
+		trap 'rm -rf "$${tmpdir}"' EXIT ; \
+	else \
+		echo "tmpdir kept: $${tmpdir}" ; \
+	fi ; \
 	meta="$${tmpdir}/modules.tsv" ; \
 	: > "$${meta}" ; \
-	$(foreach m,$(MODULES),printf '%s\t%s\t%s\n' '$(m)' '$(MODULE_SOURCES_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_LICENSE_$(subst -,_,$(m)))' >> "$${meta}" ; ) \
-	while IFS=$$'\t' read -r mod src lic ; do \
+	$(foreach m,$(MODULES),printf '%s\t%s\t%s\t%s\n' '$(m)' '$(MODULE_SOURCES_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_LICENSE_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_URL_$(subst -,_,$(m)))' >> "$${meta}" ; ) \
+	while IFS=$$'\t' read -r mod src lic vendor ; do \
 		echo ; \
 		echo "===> $${mod}" ; \
-		if [ -z "$${src}" ]; then \
-			echo "source: <not found>" ; \
-			continue ; \
-		fi ; \
+		if [ -z "$${src}" ] && [ -n "$${vendor}" ]; then src="$${vendor}" ; fi ; \
+		if [ -z "$${src}" ]; then echo "source: <not found>" ; continue ; fi ; \
 		echo "source: $${src}" ; \
+		if [ -n "$${vendor}" ]; then echo "vendor url: $${vendor}" ; fi ; \
 		if [ -n "$${lic}" ]; then \
 			echo "configured license: $${lic}" ; \
 		fi ; \
@@ -330,23 +334,49 @@ detect-module-licenses:
 				if git clone --depth 1 "$${src}" "$${work}/src" >/dev/null 2>&1 ; then \
 					scan="$${work}/src" ; \
 				else \
-					echo "clone failed" ; \
-					continue ; \
+					if [ -n "$${vendor}" ] && git clone --depth 1 "$${vendor}" "$${work}/src" >/dev/null 2>&1 ; then \
+						scan="$${work}/src" ; \
+						echo "clone via vendor url succeeded" ; \
+					elif [ -n "$${vendor}" ] && git clone --depth 1 "$${vendor}.git" "$${work}/src" >/dev/null 2>&1 ; then \
+						scan="$${work}/src" ; \
+						echo "clone via vendor .git succeeded" ; \
+					else \
+						echo "clone failed" ; \
+						continue ; \
+					fi ; \
 				fi ;; \
 			http://*|https://*) \
-				file="$${work}/$${src##*/}" ; \
-				if ! curl -fsSL "$${src}" -o "$${file}" >/dev/null 2>&1 ; then \
-					echo "download failed" ; \
-					continue ; \
-				fi ; \
-				case "$${file}" in \
+				case "$${src}" in \
+					*.git) \
+						git clone --depth 1 "$${src}" "$${work}/src" >/dev/null 2>&1 && scan="$${work}/src" ;; \
 					*.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz) \
+						file="$${work}/$${src##*/}" ; \
+						if ! curl -fsSL "$${src}" -o "$${file}" >/dev/null 2>&1 ; then \
+							echo "download failed" ; \
+							continue ; \
+						fi ; \
 						mkdir -p "$${work}/src" ; \
 						tar -xf "$${file}" -C "$${work}/src" >/dev/null 2>&1 || true ; \
 						scan="$${work}/src" ;; \
 					*) \
-						echo "source is URL but not an archive: $${file##*/}" ;; \
-				esac ;; \
+						if git clone --depth 1 "$${src}" "$${work}/src" >/dev/null 2>&1 ; then \
+							scan="$${work}/src" ; \
+						elif git clone --depth 1 "$${src}.git" "$${work}/src" >/dev/null 2>&1 ; then \
+							scan="$${work}/src" ; \
+							echo "clone via .git suffix succeeded" ; \
+						else \
+							echo "source URL is neither cloneable repo nor supported archive" ; \
+						fi ;; \
+				esac ; \
+				if [ -z "$${scan}" ] && [ -n "$${vendor}" ]; then \
+					if git clone --depth 1 "$${vendor}" "$${work}/src" >/dev/null 2>&1 ; then \
+						scan="$${work}/src" ; \
+						echo "clone via vendor url succeeded" ; \
+					elif git clone --depth 1 "$${vendor}.git" "$${work}/src" >/dev/null 2>&1 ; then \
+						scan="$${work}/src" ; \
+						echo "clone via vendor .git succeeded" ; \
+					fi ; \
+				fi ;; \
 			*) \
 				if [ ! -f "$(SRCPATH)/$${src}" ]; then \
 					echo "local source missing: $(SRCPATH)/$${src}" ; \
@@ -378,6 +408,10 @@ detect-module-licenses:
 			echo "spdx hint: $${spdx}" ; \
 		fi ; \
 	done < "$${meta}" ; \
+	if [ -n "$${keep_tmp}" ] && [ "$${keep_tmp}" != "0" ]; then \
+		echo ; \
+		echo "inspect files under: $${tmpdir}" ; \
+	fi ; \
 	}
 
 .PHONY:	default all modules specs test test-debug clean detect-module-licenses
