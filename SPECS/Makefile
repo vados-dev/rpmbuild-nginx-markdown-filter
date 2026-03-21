@@ -11,7 +11,7 @@ MODULE_TARGET?=	oss
 MODSRC_PREFIX=
 MODSRC_PATH=	$(SRCPATH)
 BUILD_DIR=	%{bdir}
-RPMBUILD_EXTRA_DEFINES?= --define "debug_package %{nil}" --define "_debugsource_packages 0"
+RPMBUILD_EXTRA_DEFINES?= --define "disable_debug_package 1" --define "_debugsource_packages 0"
 
 GITHUB := https://github.com/vados-dev
 
@@ -249,7 +249,7 @@ nginx-module-%.spec:
 		-e "s#%%NAME%%#$${pkgname}#g" \
 		-e "s#%%MODULE_PACKAGE_VENDOR%%#$(MODULE_PACKAGE_VENDOR_$(subst -,_,$*))#g" \
 		-e "s#%%MODULE_PACKAGE_URL%%#$(MODULE_PACKAGE_URL_$(subst -,_,$*))#g" \
-		-e "s#%%MODULE_PACKAGE_LICENSE%%#$(if $(MODULE_PACKAGE_LICENSE_$(subst -,_,$*)),$(MODULE_PACKAGE_LICENSE_$(subst -,_,$*)),$(PACKAGE_LICENSE))#g" \
+		-e "s#%%MODULE_PACKAGE_LICENSE%%#$(if $(strip $(MODULE_PACKAGE_LICENSE_$(subst -,_,$*))),$(strip $(MODULE_PACKAGE_LICENSE_$(subst -,_,$*))),$(PACKAGE_LICENSE))#g" \
 		-e "s#%%SUMMARY%%#$(MODULE_SUMMARY_PREFIX) $(MODULE_SUMMARY_$(subst -,_,$*))#g" \
 		-e "s#%%SHORT_SUMMARY%%#$(MODULE_SUMMARY_$(subst -,_,$*))#g" \
 		-e "s#%%TARGET_VERSION%%#$(TARGET_VERSION)#g" \
