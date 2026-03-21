@@ -142,11 +142,27 @@ nginx-module-%.spec:
 	i=100 ; \
 	sources= ; \
 	prepsources= ; \
-	for src in $(MODULE_SOURCES_$(call modname, $@)); do \
+	for src in $(MODULE_SOURCES_$(call modname, $*)); do \
 		s="`printf "Source%d: %s\n" $${i} $${src}`" ; \
 		sources="$${sources}\n$${s}" ; \
-		s="`printf "tar zxf %%{SOURCE%d\}" $${i}`" ; \
+		is_archive=0 ; \
+		case "$${src}" in \
+			http://*.tar|https://*.tar|http://*.tar.gz|https://*.tar.gz|http://*.tgz|https://*.tgz|http://*.tar.bz2|https://*.tar.bz2|http://*.tbz2|https://*.tbz2|http://*.tar.xz|https://*.tar.xz|http://*.txz|https://*.txz) \
+				is_archive=1 ; \
+				s="`printf "src=%%{SOURCE%d}; file=$${src##*/}; curl -fL \"$${src}\" -o \"$${file}\"; tar -xf \"$${file}\"" $${i}`" ;; \
+			*.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz) \
+				is_archive=1 ; \
+				s="`printf "tar -xf %%{SOURCE%d}" $${i}`" ;; \
+			*.git) \
+				s="`printf "git clone %%{SOURCE%d} || true" $${i}`" ;; \
+			*) \
+				s="`printf "echo Skipping non-archive SOURCE%d" $${i}`" ;; \
+		esac ; \
 		prepsources="$${prepsources}\n$${s}" ; \
+		if [ "$${is_archive}" = "1" ]; then \
+			sn=`echo $${src##*/} | sed -e 's/[?].*$$//' -e 's/\(\\.tar\\.gz\\|\\.tgz\\|\\.tar\\.bz2\\|\\.tbz2\\|\\.tar\\.xz\\|\\.txz\\|\\.tar\\)$$//' -e 's/-[0-9].*$$//'` ; \
+			[ -n "$${sn}" ] && prepsources="$${prepsources}\nln -sfn $${sn}-* $${sn} || true" ; \
+		fi ; \
 		i=$$(($${i}+1)) ; \
 	done ; \
 	i=100 ; \

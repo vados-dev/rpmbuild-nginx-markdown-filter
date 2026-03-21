@@ -22,11 +22,6 @@ MODULE_CONFARGS_include_server=	--add-dynamic-module=$(MODULE_NAME_include_serve
 
 MODULE_VERSION_PREFIX_include_server=$(BASE_VERSION)+
 
-define MODULE_PREBUILD_include_server
-cd %{bdir} \&\& git clone $(MODULE_SOURCES_include_server)
-endef
-export MODULE_PREBUILD_include_server
-
 define MODULE_POST_include_server
 cat <<BANNER
 ----------------------------------------------------------------------

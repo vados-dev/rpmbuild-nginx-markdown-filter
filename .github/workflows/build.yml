@@ -1,17 +1,24 @@
 name: Build RPM
+
 permissions:
   contents: write
+
 on:
   workflow_dispatch:
     inputs:
       nginx_channel:
-        description: "nginx.repo channel"
+        description: "nginx source channel"
         required: true
-        default: 'mainline'
+        default: "mainline"
         type: choice
         options:
           - stable
           - mainline
+      disable_debug_packages:
+        description: "Disable debug/debuginfo packages"
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   build:
@@ -21,9 +28,10 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
       GITHUB_TOKEN: ${{ secrets.amsternl }}
     container: quay.io/centos/centos:stream10
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         shell: bash
@@ -35,116 +43,158 @@ jobs:
           dnf -y install \
             rpm-build \
             rpmdevtools \
+            rpm-sign \
             redhat-rpm-config \
             gcc \
             make \
             curl \
+            git \
+            gnupg2 \
+            cpio \
             systemd \
             zlib-devel \
             pcre2-devel \
             openssl-devel \
             cmark-devel
 
-      - name: Prepare sources
+      - name: Prepare sources from nginx SRPM
+        id: prepare
         shell: bash
         run: |
           set -euo pipefail
+
           channel="${{ inputs.nginx_channel }}"
-          ??? (enable selected !SOURCES! channel) sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" S SOURCES/nginx.repo
-# в SPECS/ есть файлик спеки для двух OS пока не понял, как их применять     [cp SOURCES/nginx.repo /etc/yum.repos.d/nginx.repo]
-          [cd ~ && rpmdev-setuptree && dnf download --source nginx && rpm -Uvh nginx-***???.ngx.src.rpm]
-          ??? (now get nginx version) sed -i -E "s/^Version: [0-9.]+[+]/Version: ${ver}+/" SPECS/nginx.spec
-          sed -i -E "s/^BASE_VERSION=.*/BASE_VERSION=${ver}/" SPECS/Makefile
-# не надо, уже на месте          curl -fL -o "SOURCES/nginx-${ver}.tar.gz" "https://nginx.org/download/nginx-${ver}.tar.gz"
-# здесь надо доделать/отладить мои модули в SPECS/Makefile[.*] nginx-module.spec.in          [make specs and copy to rpmbuild]
-# не работает как хотелось бы define MODULE_PREP_SOURCES т.к. там при выполнении make specs ожидается архив. 
-# Архив не проблема, но мне это не нравится, зачем архив, когда есть репка!?
-# здесь мои конфиги и папка для распаковки в /usr/share/nginx/html       [copy SOURCES to rpmbuild]
+          source_repo="nginx-mainline-source"
+          if [[ "$channel" == "stable" ]]; then
+            source_repo="nginx-source"
+          fi
 
-      - name: Get Env Variables
+          source /etc/os-release
+          os_token="${ID}"
+          release_token="${VERSION_ID%%.*}"
+          repo_file="/tmp/nginx.repo"
+
+          cp SOURCES/nginx.repo "$repo_file"
+          sed -i \
+            -e "s|OS|${os_token}|g" \
+            -e "s|RELEASEVER|${release_token}|g" \
+            "$repo_file"
+          sed -i -E 's/^enabled=1$/enabled=0/' "$repo_file"
+          sed -i -E "/^\[$source_repo\]/,/^\[/{s/^enabled=.*/enabled=1/}" "$repo_file"
+          cp "$repo_file" /etc/yum.repos.d/nginx.repo
+
+          dnf -y --disablerepo="*" --enablerepo="$source_repo" download --source nginx
+          src_rpm="$(ls -1t nginx-*.src.rpm | head -n 1)"
+          ver="$(rpm -qp --queryformat '%{VERSION}\n' "$src_rpm")"
+
+          rm -rf /tmp/nginx-srpm
+          mkdir -p /tmp/nginx-srpm
+          pushd /tmp/nginx-srpm >/dev/null
+          rpm2cpio "$GITHUB_WORKSPACE/$src_rpm" | cpio -idmv
+          tarball="$(ls -1 nginx-${ver}.tar.* | head -n 1)"
+          popd >/dev/null
+
+          rm -f SOURCES/nginx-*.tar.gz SOURCES/nginx-*.tar.xz SOURCES/nginx-*.tgz
+          cp -f "/tmp/nginx-srpm/${tarball}" "SOURCES/${tarball}"
+
+          sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" SPECS/nginx.spec
+          sed -i -E "s/^BASE_VERSION[[:space:]]*=.*/BASE_VERSION=\t${ver}/" SPECS/Makefile
+
+          echo "nginx_version=${ver}" >> "$GITHUB_OUTPUT"
+          echo "source_repo=${source_repo}" >> "$GITHUB_OUTPUT"
+          echo "source_rpm=${src_rpm}" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=${tarball}" >> "$GITHUB_OUTPUT"
+
+      - name: Get env variables
+        shell: bash
         run: |
-          echo "DT_STAMP=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
-          echo "DateTime=$(date +%d.%m.%Y-%T)" >> $GITHUB_ENV
-          echo "REF=${{ github.ref }}" >> $GITHUB_ENV
-          echo "REF_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
-          echo "GITHUB_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
-          echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
-        continue-on-error: true
+          echo "DT_STAMP=$(date +%Y%m%d%H%M)" >> "$GITHUB_ENV"
+          echo "DateTime=$(date +%d.%m.%Y-%T)" >> "$GITHUB_ENV"
+          echo "REF=${{ github.ref }}" >> "$GITHUB_ENV"
+          echo "REF_NAME=${{ github.ref_name }}" >> "$GITHUB_ENV"
+          echo "GITHUB_RUN_ID=${{ github.run_id }}" >> "$GITHUB_ENV"
+          echo "SHA=${{ github.sha }}" >> "$GITHUB_ENV"
+          echo "NGINX_VERSION=${{ steps.prepare.outputs.nginx_version }}" >> "$GITHUB_ENV"
+          echo "SOURCE_REPO=${{ steps.prepare.outputs.source_repo }}" >> "$GITHUB_ENV"
+          echo "SOURCE_RPM=${{ steps.prepare.outputs.source_rpm }}" >> "$GITHUB_ENV"
+          echo "SOURCE_TARBALL=${{ steps.prepare.outputs.source_tarball }}" >> "$GITHUB_ENV"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@latest
-        with:
-            tag_name: ${{ env.REF_NAME }} #${{ github.run_id }}
-            release_name: Release ${{ env.REF_NAME }} #"Release: ${{ env.DT_STAMP }}, nginx version: ${{ inputs.nginx_version }}."
-            body: |
-              Build width:
-              - Date: ${{ env.DateTime }}
-              - RUN ID: ${{ env.GITHUB_RUN_ID }}
-              - REF: ${{ env.REF }}
-              - REF NAME: ${{ env.REF_NAME }}
-              - SHA: ${{ env.SHA }}
-            draft: false
-            prerelease: false
-        continue-on-error: true
-
-# Посмотри пожалуйста в строну всяких actions типа: naveenrajm7/rpmbuild@master janbrummer/build-rpm-action
       - name: Build RPM
         id: rpm_build
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf ngx_markdown_filter_module
-          tar -xzf SOURCES/ngx_markdown_filter_module.tar.gz -C .
-          rpmbuild -ba \
-            --define "_topdir $(pwd)" \
-            --define "_module_dir $(pwd)/ngx_markdown_filter_module" \
-            SPECS/nginx.spec
 
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
+          rpmbuild_args=( -ba --define "_topdir $(pwd)" )
+          if [[ "${{ inputs.disable_debug_packages }}" == "true" ]]; then
+            rpmbuild_args+=( --define "debug_package %{nil}" --define "_debugsource_packages 0" )
+          fi
+
+          rpmbuild "${rpmbuild_args[@]}" SPECS/nginx.spec
+
+      - name: Import GPG key
+        if: ${{ secrets.RPM_GPG_PRIVATE_KEY != '' && secrets.RPM_GPG_PASSPHRASE != '' }}
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v7
         with:
-             upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-             asset_path: ${{ steps.rpm_build.outputs.source_rpm_path }}
-             asset_name: ${{ steps.rpm_build.outputs.source_rpm_name }}
-             asset_content_type: ${{ steps.rpm_build.outputs.rpm_content_type }}
-        continue-on-error: true
+          gpg_private_key: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.RPM_GPG_PASSPHRASE }}
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@master
+      - name: Sign RPM packages
+        if: ${{ steps.import_gpg.outcome == 'success' }}
+        shell: bash
         env:
-            GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+          RPM_GPG_PASSPHRASE: ${{ secrets.RPM_GPG_PASSPHRASE }}
+          RPM_GPG_KEYID: ${{ steps.import_gpg.outputs.fingerprint }}
+        run: |
+          set -euo pipefail
+          cat > ~/.rpmmacros <<EOF
+          %_signature gpg
+          %_gpg_name ${RPM_GPG_KEYID}
+          %_gpg_path %{getenv:HOME}/.gnupg
+          %_gpgbin /usr/bin/gpg
+          %__gpg /usr/bin/gpg
+          %__gpg_sign_cmd %{__gpg} gpg --batch --yes --pinentry-mode loopback --passphrase '${RPM_GPG_PASSPHRASE}' --no-armor --local-user "%{_gpg_name}" --detach-sign --output %{__signature_filename} %{__plaintext_filename}
+          EOF
+
+          find RPMS SRPMS -type f -name '*.rpm' -print0 | xargs -0 -r rpmsign --addsign
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
         with:
           files: |
             RPMS/**/*.rpm
             SRPMS/*.src.rpm
-          name: "Unofficial Release: ${{ github.run_id }}, nginx version: ${{ inputs.nginx_version }} // SHA: ${{ env.SHA }} ${{ env.DateTime }}"
-          tag_name: ${{ github.ref_name }} #${{ github.run_id }}
+          name: "Build #${{ github.run_id }} nginx ${{ env.NGINX_VERSION }} (${{ inputs.nginx_channel }})"
+          tag_name: ${{ github.ref_name }}
           body: |
-             Build: ${{ steps.create_release.outputs.release_name }}
-             - Date: ${{ env.DateTime }}
-             - RUN ID: ${{ env.GITHUB_RUN_ID }}
-             - REF: ${{ env.REF }}
-             - REF NAME: ${{ env.REF_NAME }}
-             - SHA: ${{ env.SHA }}
+            Build info:
+            - Date: ${{ env.DateTime }}
+            - Run ID: ${{ env.GITHUB_RUN_ID }}
+            - Ref: ${{ env.REF }}
+            - Ref name: ${{ env.REF_NAME }}
+            - SHA: ${{ env.SHA }}
+            - nginx channel: ${{ inputs.nginx_channel }}
+            - source repo: ${{ env.SOURCE_REPO }}
+            - source rpm: ${{ env.SOURCE_RPM }}
+            - source tarball: ${{ env.SOURCE_TARBALL }}
+            - nginx version: ${{ env.NGINX_VERSION }}
+            - debug packages disabled: ${{ inputs.disable_debug_packages }}
 
       - name: Upload artifacts
-        id: upload_artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
-          #nginx-rpms-${{ inputs.nginx_version }}
-          #path: ${{ steps.rpm.outputs.rpm_dir_path }}
-          name: nginx-rpms-${{ inputs.nginx_version }}
+          name: nginx-rpms-${{ env.NGINX_VERSION }}
           path: |
             RPMS/**/*.rpm
             SRPMS/*.src.rpm
-        continue-on-error: true
 
-      - name: Echo Build Outputs
+      - name: Echo build outputs
         shell: bash
         run: |
-            echo "${{ steps.rpm_build.outputs }}"
-            echo "${{ steps.create_release.outputs }}"
-            echo "${{ steps.upload_artifacts.outputs }}"
-        continue-on-error: true
+          echo "nginx_version=${{ env.NGINX_VERSION }}"
+          echo "source_repo=${{ env.SOURCE_REPO }}"
+          echo "source_rpm=${{ env.SOURCE_RPM }}"
+          echo "source_tarball=${{ env.SOURCE_TARBALL }}"

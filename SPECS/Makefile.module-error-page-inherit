@@ -21,11 +21,6 @@ MODULE_CONFARGS_error_page_inherit=	--add-dynamic-module=$(MODULE_NAME_error_pag
 
 MODULE_VERSION_PREFIX_error_page_inherit=$(BASE_VERSION)+
 
-define MODULE_PREBUILD_error_page_inherit
-cd %{bdir} \&\& git clone $(MODULE_SOURCES_error_page_inherit)
-endef
-export MODULE_PREBUILD_error_page_inherit
-
 define MODULE_POST_error_page_inherit
 cat <<BANNER
 ----------------------------------------------------------------------

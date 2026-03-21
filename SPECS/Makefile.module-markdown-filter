@@ -26,11 +26,6 @@ BuildRequires: cmark-devel
 export MODULE_DEFINITIONS_markdown_filter
 endef
 
-define MODULE_PREBUILD_markdown_filter
-cd %{bdir} \&\& git clone $(MODULE_SOURCES_markdown_filter)
-endef
-export MODULE_PREBUILD_markdown_filter
-
 define MODULE_POST_markdown_filter
 cat <<BANNER
 ----------------------------------------------------------------------
