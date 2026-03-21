@@ -97,8 +97,12 @@ modname = $(shell basename "$1" | sed -e 's#^nginx-module-##' -e 's#\.spec$$##' 
 default:
 	@echo "valid targets: all base $(addprefix module-, $(MODULES)) test test-debug"
 
-all:	base modules
+all:	tree base modules
 	@echo "===> all done"
+
+tree:
+	@rpmdev-setuptree
+	@echo "===> setuptree done"
 
 modules:	$(addprefix module-, $(MODULES))
 
@@ -350,7 +354,8 @@ clean:
 	@rm -f base module-*
 	@rm -f nginx.spec nginx-module-*.spec
 	@rm -rf nginx-tests
-	@rm -f $(BASE_SRC)
+	@rm -f $(SRCPATH)/$(BASE_SRC)
+	@rpmdev-wipetree
 
 detect-module-licenses:
 	@{ \
@@ -483,6 +488,6 @@ detect-module-licenses:
 	fi ; \
 	}
 
-.PHONY:	default all modules specs test test-debug clean detect-module-licenses
+.PHONY:	default all tree modules specs test test-debug clean detect-module-licenses
 
 .SECONDARY:
