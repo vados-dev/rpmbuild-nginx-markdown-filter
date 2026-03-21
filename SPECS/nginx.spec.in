@@ -337,4 +337,4 @@ fi
 
 %changelog
 * Sat Mar 21 2026 vados <noreply@example.com>
-- Fix Source10 extraction in %install and keep %files declarative.
+- Fix Source10 extraction in %%install and keep %%files declarative.
