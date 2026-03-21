@@ -400,6 +400,26 @@ detect-module-licenses:
 		if [ -n "$${cand}" ]; then \
 			echo "license files:" ; \
 			echo "$${cand}" | sed -e 's#^#  - #' ; \
+			if [ -z "$${lic}" ]; then \
+				modkey=`echo "$${mod}" | tr '-' '_'` ; \
+				first_license=`echo "$${cand}" | head -n 1` ; \
+				title=`head -n 1 "$${first_license}" | tr -d '\r'` ; \
+				guess="" ; \
+				case "$${title}" in \
+					*MIT*) guess="MIT" ;; \
+					*Apache*2.0*) guess="Apache-2.0" ;; \
+					*BSD*3*) guess="BSD-3-Clause" ;; \
+					*BSD*2*) guess="BSD-2-Clause" ;; \
+					*GNU\ GENERAL\ PUBLIC\ LICENSE*3*) guess="GPL-3.0-only" ;; \
+					*GNU\ GENERAL\ PUBLIC\ LICENSE*2*) guess="GPL-2.0-only" ;; \
+				esac ; \
+				echo "warning: MODULE_PACKAGE_LICENSE_$${modkey} is empty" ; \
+				if [ -n "$${guess}" ]; then \
+					echo "suggested license: $${guess}" ; \
+				else \
+					echo "suggested license: inspect $${first_license}" ; \
+				fi ; \
+			fi ; \
 		else \
 			echo "license files: not found" ; \
 		fi ; \
