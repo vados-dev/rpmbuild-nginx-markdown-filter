@@ -308,10 +308,10 @@ detect-module-licenses:
 	set -e ; \
 	tmpdir=`mktemp -d` ; \
 	trap 'rm -rf "$${tmpdir}"' EXIT ; \
-	for mf in Makefile.module-* ; do \
-		mod=$${mf#Makefile.module-} ; \
-		src=`sed -nE 's/^MODULE_SOURCES_[[:alnum:]_]+[[:space:]]*=[[:space:]]*(.+)$$/\1/p' "$${mf}" | head -n 1 | sed -E 's/[[:space:]]+$$//'` ; \
-		lic=`sed -nE 's/^MODULE_PACKAGE_LICENSE_[[:alnum:]_]+[[:space:]]*=[[:space:]]*(.+)$$/\1/p' "$${mf}" | head -n 1 | sed -E 's/[[:space:]]+$$//'` ; \
+	meta="$${tmpdir}/modules.tsv" ; \
+	: > "$${meta}" ; \
+	$(foreach m,$(MODULES),printf '%s\t%s\t%s\n' '$(m)' '$(MODULE_SOURCES_$(subst -,_,$(m)))' '$(MODULE_PACKAGE_LICENSE_$(subst -,_,$(m)))' >> "$${meta}" ; ) \
+	while IFS=$$'\t' read -r mod src lic ; do \
 		echo ; \
 		echo "===> $${mod}" ; \
 		if [ -z "$${src}" ]; then \
@@ -348,11 +348,11 @@ detect-module-licenses:
 						echo "source is URL but not an archive: $${file##*/}" ;; \
 				esac ;; \
 			*) \
-				if [ ! -f "../SOURCES/$${src}" ]; then \
-					echo "local source missing: ../SOURCES/$${src}" ; \
+				if [ ! -f "$(SRCPATH)/$${src}" ]; then \
+					echo "local source missing: $(SRCPATH)/$${src}" ; \
 					continue ; \
 				fi ; \
-				file="../SOURCES/$${src}" ; \
+				file="$(SRCPATH)/$${src}" ; \
 				case "$${file}" in \
 					*.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz) \
 						mkdir -p "$${work}/src" ; \
@@ -377,7 +377,7 @@ detect-module-licenses:
 		if [ -n "$${spdx}" ]; then \
 			echo "spdx hint: $${spdx}" ; \
 		fi ; \
-	done ; \
+	done < "$${meta}" ; \
 	}
 
 .PHONY:	default all modules specs test test-debug clean detect-module-licenses
