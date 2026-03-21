@@ -8,6 +8,7 @@ CONTRIB?=       ../contrib
 CONTRIB:=       $(abspath $(CONTRIB))
 BUILD_ENV_PATH=	${HOME}/rpmbuild
 ARTIFACTS_DIR?=	../RPMS
+COPY_ARTIFACTS?=	$(if $(CI),1,0)
 BUILD_SOURCES=	$(BUILD_ENV_PATH)/SOURCES
 MODULE_TARGET?=	oss
 MODSRC_PREFIX=
@@ -128,9 +129,11 @@ stage-sources: $(BUILD_SOURCES)/$(BASE_SRC)
 base:	nginx.spec stage-sources
 	@echo "===> Building base package" ; \
 	$(SHELL) -c "time -p rpmbuild -ba $(RPMBUILD_EXTRA_DEFINES) nginx.spec" && \
-	mkdir -p $(ARTIFACTS_DIR) && \
-	find $(BUILD_ENV_PATH)/RPMS -type f -name "*.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; && \
-	find $(BUILD_ENV_PATH)/SRPMS -maxdepth 1 -type f -name "*.src.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; && \
+	if [ "$(COPY_ARTIFACTS)" = "1" ]; then \
+		mkdir -p $(ARTIFACTS_DIR) && \
+		find $(BUILD_ENV_PATH)/RPMS -type f -name "*.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; && \
+		find $(BUILD_ENV_PATH)/SRPMS -maxdepth 1 -type f -name "*.src.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; ; \
+	fi && \
 	ln -s ../BUILD/nginx-$(BASE_VERSION)/objs base
 
 nginx.spec:
@@ -152,9 +155,11 @@ nginx.spec:
 module-%: nginx-module-%.spec stage-sources
 	@echo "===> Building nginx-$@ package" ; \
 	$(SHELL) -c "time -p rpmbuild -ba $(RPMBUILD_EXTRA_DEFINES) nginx-$@.spec" && \
-	mkdir -p $(ARTIFACTS_DIR) && \
-	find $(BUILD_ENV_PATH)/RPMS -type f -name "*.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; && \
-	find $(BUILD_ENV_PATH)/SRPMS -maxdepth 1 -type f -name "*.src.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; && \
+	if [ "$(COPY_ARTIFACTS)" = "1" ]; then \
+		mkdir -p $(ARTIFACTS_DIR) && \
+		find $(BUILD_ENV_PATH)/RPMS -type f -name "*.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; && \
+		find $(BUILD_ENV_PATH)/SRPMS -maxdepth 1 -type f -name "*.src.rpm" -exec cp -f {} $(ARTIFACTS_DIR)/ \; ; \
+	fi && \
 	ln -s ../BUILD/nginx-$@-$(BASE_VERSION)/objs $@
 
 nginx-module-%.spec:
