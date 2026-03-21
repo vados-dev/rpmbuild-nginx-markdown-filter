@@ -27,6 +27,8 @@ jobs:
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
       GITHUB_TOKEN: ${{ secrets.amsternl }}
+      RPM_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+      RPM_GPG_PASSPHRASE: ${{ secrets.RPM_GPG_PASSPHRASE }}
     container: quay.io/centos/centos:stream10
 
     steps:
@@ -133,18 +135,18 @@ jobs:
           rpmbuild "${rpmbuild_args[@]}" SPECS/nginx.spec
 
       - name: Import GPG key
-        if: ${{ secrets.RPM_GPG_PRIVATE_KEY != '' }}
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v7
         with:
-          gpg_private_key: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.RPM_GPG_PASSPHRASE }}
+          gpg_private_key: ${{ env.RPM_GPG_PRIVATE_KEY }}
+          passphrase: ${{ env.RPM_GPG_PASSPHRASE }}
 
       - name: Sign RPM packages
         if: ${{ steps.import_gpg.outcome == 'success' }}
         shell: bash
         env:
-          RPM_GPG_PASSPHRASE: ${{ secrets.RPM_GPG_PASSPHRASE }}
+          RPM_GPG_PASSPHRASE: ${{ env.RPM_GPG_PASSPHRASE }}
           RPM_GPG_KEYID: ${{ steps.import_gpg.outputs.fingerprint }}
         run: |
           set -euo pipefail
