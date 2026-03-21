@@ -186,8 +186,16 @@ jobs:
       - name: Verify RPM signatures
         if: ${{ steps.import_gpg.outcome == 'success' }}
         shell: bash
+        env:
+          RPM_GPG_KEYID: ${{ steps.import_gpg.outputs.fingerprint }}
         run: |
           set -euo pipefail
+          if [[ -f "SOURCES/RPM-GPG-KEY-nginx" ]]; then
+            rpm --import "SOURCES/RPM-GPG-KEY-nginx"
+          else
+            gpg --batch --yes --armor --export "${RPM_GPG_KEYID}" > /tmp/RPM-GPG-KEY-build
+            rpm --import /tmp/RPM-GPG-KEY-build
+          fi
           rpm -Kv RPMS/x86_64/*.rpm SRPMS/*.src.rpm
 
       - name: Upload to release
