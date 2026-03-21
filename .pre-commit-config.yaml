@@ -10,6 +10,11 @@ repos:
 
   - repo: local
     hooks:
+      - id: regen-specs
+        name: "SPECS: regenerate generated specs"
+        language: system
+        pass_filenames: false
+        entry: bash -lc 'make -C SPECS specs && git add SPECS/nginx.spec SPECS/nginx-module-*.spec'
       - id: rpm-no-vendor-url-tag
         name: "RPM: forbid 'Vendor URL:' tag"
         language: pygrep
