@@ -201,7 +201,7 @@ nginx-module-%.spec:
 		-e "s#%%NAME%%#$${pkgname}#g" \
 		-e "s#%%MODULE_PACKAGE_VENDOR%%#$(MODULE_PACKAGE_VENDOR_$(call modname, $@))#g" \
 		-e "s#%%MODULE_PACKAGE_URL%%#$(MODULE_PACKAGE_URL_$(call modname, $@))#g" \
-		-e "s#%%MODULE_PACKAGE_LICENSE%%#$(MODULE_PACKAGE_LICENSE_$(call modname, $@))#g" \
+		-e "s#%%MODULE_PACKAGE_LICENSE%%#$(if $(MODULE_PACKAGE_LICENSE_$(call modname, $@)),$(MODULE_PACKAGE_LICENSE_$(call modname, $@)),$(PACKAGE_LICENSE))#g" \
 		-e "s#%%SUMMARY%%#$(MODULE_SUMMARY_PREFIX) $(MODULE_SUMMARY_$(call modname, $@))#g" \
 		-e "s#%%SHORT_SUMMARY%%#$(MODULE_SUMMARY_$(call modname, $@))#g" \
 		-e "s#%%TARGET_VERSION%%#$(TARGET_VERSION)#g" \
@@ -303,6 +303,83 @@ clean:
 	@rm -rf nginx-tests
 	@rm -f $(BASE_SRC)
 
-.PHONY:	default all modules specs test test-debug clean
+detect-module-licenses:
+	@{ \
+	set -e ; \
+	tmpdir=`mktemp -d` ; \
+	trap 'rm -rf "$${tmpdir}"' EXIT ; \
+	for mf in Makefile.module-* ; do \
+		mod=$${mf#Makefile.module-} ; \
+		src=`sed -nE 's/^MODULE_SOURCES_[[:alnum:]_]+[[:space:]]*=[[:space:]]*(.+)$$/\1/p' "$${mf}" | head -n 1 | sed -E 's/[[:space:]]+$$//'` ; \
+		lic=`sed -nE 's/^MODULE_PACKAGE_LICENSE_[[:alnum:]_]+[[:space:]]*=[[:space:]]*(.+)$$/\1/p' "$${mf}" | head -n 1 | sed -E 's/[[:space:]]+$$//'` ; \
+		echo ; \
+		echo "===> $${mod}" ; \
+		if [ -z "$${src}" ]; then \
+			echo "source: <not found>" ; \
+			continue ; \
+		fi ; \
+		echo "source: $${src}" ; \
+		if [ -n "$${lic}" ]; then \
+			echo "configured license: $${lic}" ; \
+		fi ; \
+		work="$${tmpdir}/$${mod}" ; \
+		scan="" ; \
+		mkdir -p "$${work}" ; \
+		case "$${src}" in \
+			*.git) \
+				if git clone --depth 1 "$${src}" "$${work}/src" >/dev/null 2>&1 ; then \
+					scan="$${work}/src" ; \
+				else \
+					echo "clone failed" ; \
+					continue ; \
+				fi ;; \
+			http://*|https://*) \
+				file="$${work}/$${src##*/}" ; \
+				if ! curl -fsSL "$${src}" -o "$${file}" >/dev/null 2>&1 ; then \
+					echo "download failed" ; \
+					continue ; \
+				fi ; \
+				case "$${file}" in \
+					*.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz) \
+						mkdir -p "$${work}/src" ; \
+						tar -xf "$${file}" -C "$${work}/src" >/dev/null 2>&1 || true ; \
+						scan="$${work}/src" ;; \
+					*) \
+						echo "source is URL but not an archive: $${file##*/}" ;; \
+				esac ;; \
+			*) \
+				if [ ! -f "../SOURCES/$${src}" ]; then \
+					echo "local source missing: ../SOURCES/$${src}" ; \
+					continue ; \
+				fi ; \
+				file="../SOURCES/$${src}" ; \
+				case "$${file}" in \
+					*.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz) \
+						mkdir -p "$${work}/src" ; \
+						tar -xf "$${file}" -C "$${work}/src" >/dev/null 2>&1 || true ; \
+						scan="$${work}/src" ;; \
+					*) \
+						echo "local source is not an archive: $${src}" ;; \
+				esac ;; \
+		esac ; \
+		if [ -z "$${scan}" ] || [ ! -d "$${scan}" ]; then \
+			echo "license scan skipped" ; \
+			continue ; \
+		fi ; \
+		cand=`find "$${scan}" -maxdepth 4 -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' -o -iname 'COPYRIGHT*' \) | head -n 5` ; \
+		if [ -n "$${cand}" ]; then \
+			echo "license files:" ; \
+			echo "$${cand}" | sed -e 's#^#  - #' ; \
+		else \
+			echo "license files: not found" ; \
+		fi ; \
+		spdx=`grep -R -m1 -h -E 'SPDX-License-Identifier:[[:space:]]*[^[:space:]]+' "$${scan}" 2>/dev/null | sed -E 's/.*SPDX-License-Identifier:[[:space:]]*//' | head -n 1` ; \
+		if [ -n "$${spdx}" ]; then \
+			echo "spdx hint: $${spdx}" ; \
+		fi ; \
+	done ; \
+	}
+
+.PHONY:	default all modules specs test test-debug clean detect-module-licenses
 
 .SECONDARY:
