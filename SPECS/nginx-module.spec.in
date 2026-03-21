@@ -36,7 +36,7 @@ Name: %%NAME%%
 Version: %%MODULE_VERSION_PREFIX%%%%VERSION%%
 Release: %%RELEASE%%%{?dist}.ngx
 Vendor: %%MODULE_PACKAGE_VENDOR%%
-Vendor URL: %%MODULE_PACKAGE_URL%%
+URL: %%MODULE_PACKAGE_URL%%
 Group: %{_group}
 
 Source0: nginx-%{main_version}.tar.gz
