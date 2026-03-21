@@ -129,7 +129,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          rpmbuild_args=( -ba --define "_topdir $(pwd)" )
+          rpmbuild_args=( -bb --define "_topdir $(pwd)" )
           if [[ "${{ inputs.disable_debug_packages }}" == "true" ]]; then
             rpmbuild_args+=( --define "debug_package %{nil}" --define "_debugsource_packages 0" )
           fi
