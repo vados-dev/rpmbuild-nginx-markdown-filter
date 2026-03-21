@@ -28,6 +28,8 @@ Epoch: %{epoch}
 
 %define base_version %%BASE_VERSION%%
 %define base_release %%BASE_RELEASE%%%{?dist}.ngx
+%define main_version %%MAIN_VERSION%%
+%define main_release %%MAIN_RELEASE%%
 
 %define bdir %{_builddir}/%{name}-%{base_version}
 
