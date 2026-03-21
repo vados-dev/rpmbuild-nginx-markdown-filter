@@ -2,25 +2,21 @@ MODULES+=	include-server
 
 MODULE_SUMMARY_include_server=	enable support to include_server derective in nginx.conf.
 
-include $(CONTRIB)/src/ngx_http_include_server_module/version
-
-MODULE_VERSION_include_server=	$(INCLUDE_SERVER_NGINX_MODULE_VERSION)
+MODULE_VERSION_include_server=	0.01
 MODULE_RELEASE_include_server=	1
 
 MODULE_VERSION_PREFIX_include_server=$(MODULE_TARGET_PREFIX)
 
-MODULE_SOURCES_include_server=	ngx_http_include_server_module-$(INCLUDE_SERVER_NGINX_MODULE_VERSION).tar.gz
+MODULE_NAME_include_server=	ngx_http_include_server_module
 
-MODULE_CONFARGS_include_server=	--add-dynamic-module=ngx_http_include_server_module-$(INCLUDE_SERVER_NGINX_MODULE_VERSION)
+MODULE_SOURCES_include_server=	$(GITHUB)/$(MODULE_NAME_include_server).git
 
-.deps-module-include-server:
-	cd $(CONTRIB) && make .sum-ngx_http_include_server_module
-	touch $@
+MODULE_CONFARGS_include_server=	--add-dynamic-module=$(MODULE_NAME_include_server)
 
-#define MODULE_DEFINITIONS_include_server
-#BuildRequires: libmaxminddb-devel
-#endef
-#export MODULE_DEFINITIONS_include_server
+define MODULE_PREP_SOURCES_include_server
+cd %{bdir} \&\& git clone $(MODULE_SOURCES_include_server)
+endef
+export MODULE_PREP_SOURCES_include_server
 
 define MODULE_POST_include_server
 cat <<BANNER
@@ -30,7 +26,7 @@ The $(MODULE_SUMMARY_include_server) for $(MODULE_SUMMARY_PREFIX) have been inst
 To enable these modules, add the following to /etc/nginx/nginx.conf
 and reload nginx:
 
-    load_module modules/ngx_http_include_server_module.so;
+    load_module modules/$(MODULE_NAME_include_server).so;
 
 ----------------------------------------------------------------------
 BANNER

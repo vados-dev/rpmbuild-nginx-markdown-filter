@@ -4,14 +4,11 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
-      nginx_channel:
-        description: "nginx.repo channel"
+      nginx_version:
+        description: "Nginx version, e.g. 1.29.6"
         required: true
-        default: 'mainline'
-        type: choice
-        options:
-          - stable
-          - mainline
+        type: string
+        default: '1.29.6'
 
 jobs:
   build:
@@ -49,15 +46,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          channel="${{ inputs.nginx_channel }}"
-          ??? (enable selected !SOURCES! channel) sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" S SOURCES/nginx.repo
-# в SPECS/ есть файлик спеки для двух OS пока не понял, как их применять     [cp SOURCES/nginx.repo /etc/yum.repos.d/nginx.repo]
-          [cd ~ && rpmdev-setuptree && dnf download --source nginx && rpm -Uvh nginx-***???.ngx.src.rpm]
-          ??? (now get nginx version) sed -i -E "s/^Version: [0-9.]+[+]/Version: ${ver}+/" SPECS/nginx.spec
+          ver="${{ inputs.nginx_version }}"
+          sed -i -E "s/^%define base_version .*/%define base_version ${ver}/" SPECS/nginx.spec
+          sed -i -E "s/^Version: [0-9.]+[+]/Version: ${ver}+/" SPECS/nginx.spec
           sed -i -E "s/^BASE_VERSION=.*/BASE_VERSION=${ver}/" SPECS/Makefile
-# не надо, уже на месте          curl -fL -o "SOURCES/nginx-${ver}.tar.gz" "https://nginx.org/download/nginx-${ver}.tar.gz"
-# здесь надо доделать/отладить мои модули в nginx.spec.in          [make specs and copy to rpmbuild]
-# здесь мои конфиги и папка для распаковки в /usr/share/nginx/html       [copy SOURCES to rpmbuild]
+          rm -f SOURCES/nginx-*.tar.gz
+          curl -fL -o "SOURCES/nginx-${ver}.tar.gz" "https://nginx.org/download/nginx-${ver}.tar.gz"
 
       - name: Get Env Variables
         run: |

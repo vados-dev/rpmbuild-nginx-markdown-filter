@@ -12,6 +12,15 @@ MODSRC_PREFIX=
 MODSRC_PATH=	$(SRCPATH)
 BUILD_DIR=	%{bdir}
 
+GITHUB := https://github.com/vados-dev
+
+ifndef GIT
+ifeq ($(shell git --version >/dev/null 2>&1 || echo FAIL),)
+GIT = git
+endif
+endif
+GIT ?= $(error git not found)
+
 ifeq ($(MODULE_TARGET), plus)
 MODULE_SPEC_TEMPLATE=	nginx-plus-module.spec.in
 MODULE_SUMMARY_PREFIX=	NGINX Plus
@@ -36,7 +45,7 @@ endif
 MODULE_PACKAGE_VENDOR=	Nginx, Inc.
 PACKAGE_VENDOR= NGINX Packaging <nginx-packaging@f5.com>
 
-MODULES=	markdown-filter include-server error-page-inherit
+MODULES=	error-page-inherit include-server markdown-filter
 
 -include Makefile.module-*
 
@@ -133,10 +142,32 @@ nginx-module-%.spec:
 	i=100 ; \
 	sources= ; \
 	prepsources= ; \
-	for src in $(MODULE_SOURCES_$(call modname, $@)); do \
+	for src in $(MODULE_SOURCES_$(call modname, $*)); do \
+		ln -sf $(CONTRIB)/tarballs/$${src} $(SRCPATH)/$${src} ; \
 		s="`printf "Source%d: %s\n" $${i} $${src}`" ; \
 		sources="$${sources}\n$${s}" ; \
-		s="`printf "tar zxf %%{SOURCE%d\}" $${i}`" ; \
+		case "$${src}" in \
+			*.tar.xz) \
+				taropts="xvJfo" ; \
+				;; \
+			*.git) \
+				taropts="git" ; \
+				;; \
+			*) \
+				taropts="xvzfo" ; \
+				;; \
+		esac ; \
+		if [ "$${taropts}" = "git" ] ; then \
+			s="`printf "$${taropts} clone %%{SOURCE%d\}" $${i}`" ; \
+		else \
+			s="`printf "tar $${taropts} %%{SOURCE%d\}" $${i}`" ; \
+		fi ; \		
+		prepsources="$${prepsources}\n$${s}" ; \
+		sn=`echo $${src} | sed -e 's/-[0-9].*$$//'` ; \
+		if [ "$${sn}" = "$${src}" ] ; then \
+			sn=$${src%-*} ; \
+		fi ; \
+		s="`printf "ln -s $${sn}-* $${sn}"`" ; \
 		prepsources="$${prepsources}\n$${s}" ; \
 		i=$$(($${i}+1)) ; \
 	done ; \
