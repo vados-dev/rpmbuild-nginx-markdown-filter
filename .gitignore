@@ -20,3 +20,8 @@ Gemfile.lock
 # rpmbuild/generated temporary spec artifacts
 SPECS/*.spec.tmp
 SPECS/*.tmp.spec
+
+# build outputs must stay out of git
+RPMS/*.rpm
+RPMS/*.src.rpm
+SOURCES/nginx-*.tar.gz
