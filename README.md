@@ -1,6 +1,26 @@
-# RPMBuilder for Nginx and custom modules  уасся 
-## Обновлённый nginx-rpmbuild [[ ориг отсюда ](https://github.com/archsh/nginx-rpmbuild)]
+# Nginx-rpmbuild for CentOS 10
+## Обновлённый [ nginx-rpmbuild ](https://github.com/archsh/nginx-rpmbuild)
 
+### Описание
+Инструмент для сборки `rpm` пакета [Nginx](http://nginx.org/), с возможностью подключения и сборки кастомных модулей. 
+### За основу взяты:
+1) [ nginx-rpmbuild ][![REUSE status](https://api.reuse.software/badge/github.com/archsh/nginx-rpmbuild)](https://api.reuse.software/info/github.com/archsh/nginx-rpmbuild).
+2) [ pkg-oss ](http://hg.nginx.org/pkg-oss).
+> т.е. по сути, сборщик не только для Centos 10, а может быть использован для других платформ тоже. НО! Мной не тестировано т.к. идея была в другом...
+> А именно:
+> - Т.к. использую некоторые не стандартные модули, хочется иметь возможность обновлять Nginx по фен-шую, вместе с другими системными пакетами.
+> - Конфиги тоже никто не отменял, их интегрирую в сборщик и на выходе получаю знакомо настроенный веб-морд.
+
+## В чём волшебство:
+Писали мы это чудо с codex 5.1-5.3.
+Поэтому как минимум было весело. Правда Codex тот ещё любитель изобретать "велосипед", чем знатно меня побешивал временами. 
+Но тем не менее получилось два билдера, один работает прямо здесь, второй можно запускать локально.
+В рабочий комплект, включены прямо из репок (доставляются при помощи `git clone`) и настроены:
+1. [ ngx_markdown_filter_module ](https://github.com/ukarim/ngx_markdown_filter_module).
+2. [ ngx_http_include_server_module ](https://github.com/RekGRpth/ngx_http_include_server_module).
+3. [ ngx_http_error_page_inherit_module ](https://github.com/RekGRpth/ngx_http_error_page_inherit_module).
+Также использовоны красивые шаблоны отсюда: [![REUSE status](https://api.reuse.software/badge/github.com/joppuyo/nice-nginx-error-page)](https://api.reuse.software/info/github.com/joppuyo/nice-nginx-error-page) и настроены простые кастомные страницы с ошибками, для всего сервера.
+В этом мне помогла [статья с хабра](https://habr.com/ru/articles/652479/).
 
 
 
