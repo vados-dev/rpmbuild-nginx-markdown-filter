@@ -1,4 +1,14 @@
-# RPMBuild Nginx Markdown Filter
+# RPMBuilder for Nginx and custom modules  уасся 
+## Обновлённый nginx-rpmbuild [[ ориг отсюда ](https://github.com/archsh/nginx-rpmbuild)]
+
+
+
+
+
+
+
+-* Ниже мои/мне подсказки из самого начала этого пути )))
+
 
 ## References
 
