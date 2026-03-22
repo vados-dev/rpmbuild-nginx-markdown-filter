@@ -4,7 +4,7 @@
 ### Описание
 Инструмент для сборки `rpm` пакета [Nginx](http://nginx.org/), с возможностью подключения и сборки кастомных модулей. 
 ### За основу взяты:
-1) [ nginx-rpmbuild ][![REUSE status](https://api.reuse.software/badge/github.com/archsh/nginx-rpmbuild)](https://api.reuse.software/info/github.com/archsh/nginx-rpmbuild).
+1) [ nginx-rpmbuild ](https://github.com/archsh/nginx-rpmbuild).
 2) [ pkg-oss ](http://hg.nginx.org/pkg-oss).
 > т.е. по сути, сборщик не только для Centos 10, а может быть использован для других платформ тоже. НО! Мной не тестировано т.к. идея была в другом...
 > А именно:
