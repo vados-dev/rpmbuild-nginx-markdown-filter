@@ -234,6 +234,7 @@ jobs:
             - source rpm: ${{ env.SOURCE_RPM }}
             - source tarball: ${{ env.SOURCE_TARBALL }}
             - nginx version: ${{ env.NGINX_VERSION }}
+            - rpmbuild arguments: ${{ inputs.build_args }}
             - debug packages disabled: ${{ inputs.disable_debug_packages }}
         continue-on-error: true
 
