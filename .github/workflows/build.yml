@@ -208,7 +208,12 @@ jobs:
             gpg --batch --yes --armor --export "${RPM_GPG_KEYID}" > /tmp/RPM-GPG-KEY-build
             rpm --import /tmp/RPM-GPG-KEY-build
           fi
-          rpm -Kv RPMS/x86_64/*.rpm SRPMS/*.src.rpm
+          
+          if [[ "${{ inputs.build_args }}" == "-ba" ]]; then
+            rpm -Kv RPMS/x86_64/*.rpm SRPMS/*.src.rpm
+          else
+            rpm -Kv RPMS/x86_64/*.rpm 
+          fi
         continue-on-error: true
 
       - name: Upload to release
@@ -218,7 +223,6 @@ jobs:
         with:
           files: |
             RPMS/**/*.rpm
-          if: ${{ inputs.build_args == '-ba' }}
             SRPMS/*.src.rpm
           name: "Build #${{ github.run_id }} nginx ${{ env.NGINX_VERSION }} (${{ inputs.nginx_channel }})"
           tag_name: ${{ github.ref_name }}
